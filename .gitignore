@@ -31,3 +31,5 @@ build/
 
 # Generated TensorFlow model
 /examples/tensorflow-model-export/stored-model/
+
+.venv
