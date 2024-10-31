@@ -4,6 +4,11 @@ name: Upload Python Package
 #  release:
 #    types: [published]
 
+on:
+  push:
+    branches:
+      - '*'
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
