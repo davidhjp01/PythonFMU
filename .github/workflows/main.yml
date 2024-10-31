@@ -8,17 +8,13 @@ on:
     branches:
       - '*'
 
-env:
-  MATRIX_OS: [ ubuntu-latest, windows-latest ]
-  MATRIX_PYTHON_VERSION: [ 'cp39', 'cp310', 'cp311', 'cp312' ]
-
 jobs:
   build-wrapper:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ${{ env.MATRIX_OS }}
-        python-version: ${{ env.MATRIX_PYTHON_VERSION }}
+        os: [ 'ubuntu-latest', 'windows-latest' ]
+        python-version: [ 'cp39', 'cp310', 'cp311', 'cp312' ]
 
     steps:
       - uses: actions/checkout@v3
@@ -50,7 +46,7 @@ jobs:
       - name: Archive wrapper library
         uses: actions/upload-artifact@v4
         with:
-          name: lib-wrapper-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
+          name: lib-wrapper-${{ runner.os }}-${{ matrix.python-version }}
           path: pythonfmu/resources
 
   build-python:
@@ -58,8 +54,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ${{ env.MATRIX_OS }}
-        python-version: ${{ env.MATRIX_PYTHON_VERSION }}
+        os: [ 'ubuntu-latest', 'windows-latest' ]
+        python-version: [ 'cp39', 'cp310', 'cp311', 'cp312' ]
     steps:
       - uses: actions/checkout@v3
 
@@ -72,7 +68,7 @@ jobs:
       - name: Download wrappers
         uses: actions/download-artifact@v4
         with:
-          name: lib-wrapper-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
+          name: lib-wrapper-${{ runner.os }}-${{ matrix.python-version }}
           path: pythonfmu/resources
           merge-multiple: true
     
@@ -84,7 +80,7 @@ jobs:
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-wheel-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
+          name: python-wheel-${{ runner.os }}-${{ matrix.python-version }}
           path: dist
 
   test:
@@ -92,8 +88,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ${{ env.MATRIX_OS }}
-        python-version: ${{ env.MATRIX_PYTHON_VERSION }}
+        os: [ 'ubuntu-latest', 'windows-latest' ]
+        python-version: [ 'cp39', 'cp310', 'cp311', 'cp312' ]
     timeout-minutes: 15
 
     steps:
@@ -108,12 +104,12 @@ jobs:
       - name: Download python package
         uses: actions/download-artifact@v4
         with:
-          name: python-wheel-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
+          name: python-wheel-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Run the Tests
         run: |
           pip install -r requirements.txt
-          cd python-wheel-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
+          cd python-wheel-${{ runner.os }}-${{ matrix.python-version }}
           pip install pythonfmu*.whl
           pytest --pyargs pythonfmu
           cd ..
