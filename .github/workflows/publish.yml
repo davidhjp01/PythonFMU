@@ -56,12 +56,12 @@ jobs:
       matrix:
         os: [ 'ubuntu-latest']
         python:
-          - version: '3.9'
-            cp: 'cp39'
+#          - version: '3.9'
+#            cp: 'cp39'
 #          - version: '3.10'
 #            cp: 'cp310'
-#          - version: '3.11'
-#            cp: 'cp311'
+          - version: '3.11'
+            cp: 'cp311'
 #          - version: '3.12'
 #            cp: 'cp312'
 
@@ -84,6 +84,7 @@ jobs:
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
+      if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
       env:
         CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
         CIBW_BEFORE_BUILD: >
@@ -94,11 +95,24 @@ jobs:
       with:
         output-dir: dist
 
-#    - name: Build and publish
+#    - name: Build wheels
+#      uses: pypa/cibuildwheel@v2.21.3
+#      if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
 #      env:
-#        TWINE_USERNAME: __token__
-#        TWINE_PASSWORD: ${{ secrets.PYPI_PYTHONFMU_API_TOKEN }}
-#      run: |
-#        python setup.py sdist bdist_wheel
-#        twin check --strict dist/*
-#        twine upload dist/*
+#        CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
+#        CIBW_BEFORE_BUILD: >
+#          mkdir tmp-build &&
+#          cd tmp-build &&
+#          cmake {package}/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release &&
+#          cmake --build .
+#      with:
+#        output-dir: dist
+
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_PYTHONFMU_API_TOKEN }}
+      run: |
+        python setup.py sdist bdist_wheel
+        twin check --strict dist/*
+        twine upload dist/*
