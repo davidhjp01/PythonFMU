@@ -83,8 +83,11 @@ jobs:
         pip install setuptools wheel twine
 
     - run: | 
+        echo "--"
         ls
+        echo "--"
         ls pythonfmu
+        echo "--"
         ls pythonfmu/resources
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
