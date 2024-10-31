@@ -14,10 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ 'ubuntu-latest']
-        python-version: [ '3.11 ']
-#        os: [ 'ubuntu-latest', 'windows-latest' ]
-#        python-version: [ '3.9', '3.10', '3.11', '3.12' ]
+        os: [ 'ubuntu-latest', 'windows-latest' ]
+        python-version: [ '3.9', '3.10', '3.11', '3.12' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -27,93 +25,69 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
 
-      - name: Compile wrapper on Windows
-        if: startsWith(runner.os, 'Windows')
-        run: |
-          mkdir tmp-build
-          cd tmp-build
-          cmake $Env:github_workspace/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release -A x64
-          cmake --build . --config Release
-          cd ..
-      - name: Compile wrapper on Linux / macOS
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
         if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
-        run: |
-          mkdir tmp-build
-          cd tmp-build
-          cmake $GITHUB_WORKSPACE/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release
-          cmake --build .
-          cd ..
+        env:
+          CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
+          CIBW_MANYLINUX_X86_64_IMAGE: 'manylinux_2_28'
+          CIBW_BEFORE_BUILD: >
+            mkdir tmp-build &&
+            cd tmp-build &&
+            cmake {package}/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release &&
+            cmake --build .
+        with:
+          output-dir: dist
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        if: startsWith(runner.os, 'Windows')
+        env:
+          CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
+          CIBW_BEFORE_BUILD: >
+            mkdir tmp-build ^
+            cd tmp-build ^
+            cmake {package}/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release -A x64 ^
+            cmake --build . --config Release
+        with:
+          output-dir: dist
+
       - name: Archive wrapper library
         uses: actions/upload-artifact@v4
         with:
-          name: lib-wrapper-${{ runner.os }}-${{ matrix.python-version }}
-          path: pythonfmu/resources
+          name: pythonfmu-whl-${{ runner.os }}-${{ matrix.python-version }}
+          path: dist/*.whl
 
   deploy:
     needs: build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ 'ubuntu-latest']
-        python:
-#          - version: '3.9'
-#            cp: 'cp39'
-#          - version: '3.10'
-#            cp: 'cp310'
-          - version: '3.11'
-            cp: 'cp311'
-#          - version: '3.12'
-#            cp: 'cp312'
-
+    runs-on: 'ubuntu-latest'
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python.verion }}
+        python-version: '3.x'
+
     - name: Download wrappers
       uses: actions/download-artifact@v4
       with:
-        name: lib-wrapper-${{ runner.os }}-${{ matrix.python.version }}
-        path: pythonfmu/resources
+        name: pythonfmu-whl-*
+        path: ./dist/
         merge-multiple: true
-    - name: Install dependencies
+
+    - name: Build Source
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        pip install setuptools twine build
+        python -m build sdist
+        twin check --strict ./dist/*
+        
 
-    - name: Build wheels
-      uses: pypa/cibuildwheel@v2.21.3
-      if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
-      env:
-        CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
-        CIBW_MANYLINUX_X86_64_IMAGE: 'manylinux_2_28'
-        CIBW_BEFORE_BUILD: >
-          mkdir tmp-build &&
-          cd tmp-build &&
-          cmake {package}/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release &&
-          cmake --build .
-      with:
-        output-dir: dist
-
-#    - name: Build wheels
-#      uses: pypa/cibuildwheel@v2.21.3
-#      if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
-#      env:
-#        CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
-#        CIBW_BEFORE_BUILD: >
-#          mkdir tmp-build &&
-#          cd tmp-build &&
-#          cmake {package}/pythonfmu/pythonfmu-export -DCMAKE_BUILD_TYPE=Release &&
-#          cmake --build .
-#      with:
-#        output-dir: dist
-
-#    - name: Build and publish
+#    - name: Publish
 #      env:
 #        TWINE_USERNAME: __token__
 #        TWINE_PASSWORD: ${{ secrets.PYPI_PYTHONFMU_API_TOKEN }}
 #      run: |
-#        python setup.py sdist bdist_wheel
-#        twin check --strict dist/*
+#        twine check --strict dist/*
 #        twine upload dist/*
+
