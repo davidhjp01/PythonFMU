@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ 'ubuntu-latest', 'windows-latest' ]
-        python-version: [ 'cp39', 'cp310', 'cp311', 'cp312' ]
+        python-version: [ '3.9', '3.10', '3.11', '3.12' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -48,7 +48,15 @@ jobs:
     strategy:
       matrix:
         os: [ 'ubuntu-latest', 'windows-latest' ]
-        python-version: [ 'cp39', 'cp310', 'cp311', 'cp312' ]
+        python:
+          - version: '3.9'
+            cp: 'cp39'
+          - version: '3.10'
+            cp: 'cp310'
+          - version: '3.11'
+            cp: 'cp311'
+          - version: '3.12'
+            cp: 'cp312'
 
     steps:
     - uses: actions/checkout@v3
@@ -59,7 +67,7 @@ jobs:
     - name: Download wrappers
       uses: actions/download-artifact@v4
       with:
-        name: lib-wrapper-${{ runner.os }}-${{ matrix.python-version }}
+        name: lib-wrapper-${{ runner.os }}-${{ matrix.python.version }}
         path: pythonfmu/resources
         merge-multiple: true
     - name: Install dependencies
@@ -70,7 +78,7 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
       env:
-        CIBW_BUILD: "${{ matrix.python-version }}-win_amd64 ${{ matrix.python-version }}-manylinux_x86_64"
+        CIBW_BUILD: "${{ matrix.python.cp }}-win_amd64 ${{ matrix.python.cp }}-manylinux_x86_64"
       with:
         output-dir: dist
 
