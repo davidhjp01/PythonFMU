@@ -3,26 +3,26 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - '*'
   pull_request:
     branches:
       - '*'
 
 jobs:
   build-wrapper:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2019]
-    
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Python 3.x
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: ${{ matrix.python-version }}
           architecture: 'x64'
 
       - name: Compile wrapper on Windows
@@ -46,25 +46,29 @@ jobs:
       - name: Archive wrapper library
         uses: actions/upload-artifact@v4
         with:
-          name: lib-wrapper-${{ matrix.os }}
+          name: lib-wrapper-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
           path: pythonfmu/resources
 
   build-python:
     needs: build-wrapper
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Python 3.x
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: ${{ matrix.python-version }}
           architecture: 'x64'
 
       - name: Download wrappers
         uses: actions/download-artifact@v4
         with:
-          pattern: lib-wrapper-*
+          name: lib-wrapper-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
           path: pythonfmu/resources
           merge-multiple: true
     
@@ -76,17 +80,16 @@ jobs:
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-wheel
+          name: python-wheel-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
           path: dist
 
   test:
     needs: build-python
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019]
-        python-version: ['3.9', '3.11', '3.13']
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     timeout-minutes: 15
 
     steps:
@@ -101,12 +104,12 @@ jobs:
       - name: Download python package
         uses: actions/download-artifact@v4
         with:
-          name: python-wheel
+          name: python-wheel-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Run the Tests
         run: |
           pip install -r requirements.txt
-          cd python-wheel
+          cd python-wheel-${{ matrix.os }}-${{ runner.os }}-${{ matrix.python-version }}
           pip install pythonfmu*.whl
           pytest --pyargs pythonfmu
           cd ..
