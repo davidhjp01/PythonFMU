@@ -215,13 +215,6 @@ class FmuBuilder:
             documentation_folder (FilePath): Optional additional documentation (beyond modelDescription)
             newargs (dict): Optional dict of replacements of model class __init__() arguments.
         """
-        has_cythonize: bool = options["cythonize"]
-        if has_cythonize:
-            cython_build_module = importlib.util.find_spec("Cython.Build")
-            cython = importlib.util.module_from_spec(cython_build_module)
-            cython_build_module.loader.exec_module(cython)
-            cythonize = cython.cythonize
-
         script_file = Path(script_file)
         if not script_file.exists():
             raise ValueError(f"No such file {script_file!s}")
@@ -265,15 +258,30 @@ class FmuBuilder:
             else:
                 shutil.copy2(script_file, temp_dir)
 
+            has_cythonize: bool = options["cythonize"]
+
             if has_cythonize:
-                setup(
-                    script_args=["build_ext", "--inplace"],
-                    ext_modules=cythonize(str(temp_dir / script_file.name),
-                                          compiler_directives={"language_level": "3"}),
-                )
-                for bin_file in glob.glob(
-                        f"{temp_dir / script_file.stem}*.{'pyd' if sys.platform == 'win32' else 'so'}"):
-                    shutil.copy2(bin_file, temp_dir)
+                cython_build_module = importlib.util.find_spec("Cython.Build")
+                cython = importlib.util.module_from_spec(cython_build_module)
+                cython_build_module.loader.exec_module(cython)
+                cythonize = cython.cythonize
+
+                with tempfile.TemporaryDirectory(prefix="pythonfmu_build_") as _build_dir:
+                    build_dir = Path(_build_dir)
+                    setup(
+                        script_args=["build_ext"],
+                        ext_modules=cythonize(
+                            str(temp_dir.absolute() / script_file.name),
+                            language_level="3",
+                            build_dir=str(build_dir.absolute()),
+                        ),
+                        options={
+                            "build": {"build_lib": str(build_dir.absolute())}
+                        }
+                    )
+                    for bin_file in glob.glob(
+                            f"{build_dir / script_file.stem}*.{'pyd' if sys.platform == 'win32' else 'so'}"):
+                        shutil.copy2(bin_file, temp_dir)
 
             # Embed pythonfmu in the FMU so it does not need to be included
             dep_folder = temp_dir / "pythonfmu"

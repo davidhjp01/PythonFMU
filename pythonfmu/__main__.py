@@ -1,7 +1,7 @@
 import argparse
 
 from pythonfmu import builder, csvbuilder, deploy
-from ._version import __version__
+from pythonfmu._version import __version__
 
 
 def cli_main():
