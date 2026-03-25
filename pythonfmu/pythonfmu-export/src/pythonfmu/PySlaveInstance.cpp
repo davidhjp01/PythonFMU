@@ -25,7 +25,6 @@ inline std::string getline(const std::string& fileName)
     return line;
 }
 
-
 std::string searchLeafClassName(PyObject* pLocals)
 {
     std::string deepestFile = "";
@@ -92,7 +91,7 @@ PyObject* findClass(const std::string& resources, const std::string& moduleName)
     // Read and execute the Python file
     std::ifstream file;
     file.open(filename);
-            
+
     if (!file.is_open()) {
         return nullptr;
     }
@@ -106,7 +105,7 @@ PyObject* findClass(const std::string& resources, const std::string& moduleName)
 
     // Compile python code so classes are added to the namespace
     PyObject* pyModule = PyImport_ImportModule(moduleName.c_str());
-        
+
     if (pyModule == nullptr) {
         return nullptr;
     }
@@ -178,7 +177,7 @@ PySlaveInstance::PySlaveInstance(std::string instanceName, std::string resources
 
         std::string moduleName = getline(resources_ + "/slavemodule.txt");
         std::string fileType = getline(resources_ + "/filetype.txt");
-        
+
         if (fileType == "bin") {
             pClass_ = findClassFromBinary(resources_, moduleName);
         } else {
@@ -187,6 +186,7 @@ PySlaveInstance::PySlaveInstance(std::string instanceName, std::string resources
         if (pClass_ == nullptr) {
             handle_py_exception("[ctor] findClass", gilState);
         }
+
 
         initialize(gilState);
     });

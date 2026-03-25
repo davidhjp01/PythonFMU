@@ -75,16 +75,11 @@ class Fmi2Slave(ABC):
             generationDateAndTime=date_str,
             variableNamingConvention="structured"
         )
-        if self.description is not None:
-            attrib["description"] = self.description
-        if self.author is not None:
-            attrib["author"] = self.author
-        if self.license is not None:
-            attrib["license"] = self.license
-        if self.version is not None:
-            attrib["version"] = self.version
-        if self.copyright is not None:
-            attrib["copyright"] = self.copyright
+        # use getattr to allow either class or instance attributes to be used
+        for attr in ["description", "author", "license", "version", "copyright"]:
+            value = getattr(self.__class__, attr, getattr(self, attr, None))
+            if value is not None:
+                attrib[attr] = value
 
         root = Element("fmiModelDescription", attrib)
 
@@ -107,16 +102,17 @@ class Fmi2Slave(ABC):
                     )
                 )
 
-        if self.default_experiment is not None:
+        def_ex = getattr(self.__class__, "default_experiment", getattr(self, "default_experiment", None))
+        if def_ex is not None:
             attrib = dict()
-            if self.default_experiment.start_time is not None:
-                attrib["startTime"] = str(self.default_experiment.start_time)
-            if self.default_experiment.stop_time is not None:
-                attrib["stopTime"] = str(self.default_experiment.stop_time)
-            if self.default_experiment.step_size is not None:
-                attrib["stepSize"] = str(self.default_experiment.step_size)
-            if self.default_experiment.tolerance is not None:
-                attrib["tolerance"] = str(self.default_experiment.tolerance)
+            if def_ex.start_time is not None:
+                attrib["startTime"] = str(def_ex.start_time)
+            if def_ex.stop_time is not None:
+                attrib["stopTime"] = str(def_ex.stop_time)
+            if def_ex.step_size is not None:
+                attrib["stepSize"] = str(def_ex.step_size)
+            if def_ex.tolerance is not None:
+                attrib["tolerance"] = str(def_ex.tolerance)
             SubElement(root, "DefaultExperiment", attrib)
 
         variables = SubElement(root, "ModelVariables")
@@ -176,7 +172,7 @@ class Fmi2Slave(ABC):
         if var.setter is None and hasattr(owner, var.local_name) and var.variability != Fmi2Variability.constant:
             var.setter = lambda v: setattr(owner, var.local_name, v)
 
-    def setup_experiment(self, start_time: float):
+    def setup_experiment(self, start_time: float, stop_time: Optional[float], tolerance: Optional[float]):
         pass
 
     def enter_initialization_mode(self):
@@ -308,11 +304,11 @@ class Fmi2Slave(ABC):
         return self.log_queue
 
     def log(
-        self,
-        msg: str,
-        status: Fmi2Status = Fmi2Status.ok,
-        category: Optional[str] = None,
-        debug: bool = False
+            self,
+            msg: str,
+            status: Fmi2Status = Fmi2Status.ok,
+            category: Optional[str] = None,
+            debug=None
     ):
         """Log a message to the FMU logger.
         
@@ -320,11 +316,14 @@ class Fmi2Slave(ABC):
             msg (str) : Log message
             status (Fmi2Status) : Optional, message status (default ok)
             category (str or None) : Optional, message category (default derived from status)
-            debug (bool) : Optional, is this a debug message (default False)
+            debug (bool) : Deprecated (has no effect)
         """
+        if debug is not None:
+            print(f"WARNING: 'debug' argument is deprecated and has no effect.")
+
         if category is None:
             category = f"logStatus{status.name.capitalize()}"
             if category not in self.log_categories:
                 category = "logAll"
-        log_msg = LogMsg(status, category, msg, debug)
+        log_msg = LogMsg(status, category, msg)
         self.log_queue.append(log_msg)
