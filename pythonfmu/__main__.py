@@ -1,6 +1,6 @@
 import argparse
 
-from pythonfmu import builder, csvbuilder, deploy
+from pythonfmu import builder, csvbuilder, deploy, info
 from pythonfmu._version import __version__
 
 
@@ -49,6 +49,13 @@ def cli_main():
         help="Install Python FMU dependencies."
     )
     deploy.create_command_parser(deploy_parser)
+
+    info_parser = subparsers.add_parser(
+        "info",
+        description="Display information about a generated FMU: supported platforms, compiled models (.pyd/.so) with Python implementation and version, and package dependencies.",
+        help="Display information about a generated FMU."
+    )
+    info.create_command_parser(info_parser)
 
     options = vars(parser.parse_args())
     execute = options.pop("execute")
