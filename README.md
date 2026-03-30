@@ -93,11 +93,14 @@ and Python package dependencies.
 > Currently, only the main Python script is compiled — additional Python dependencies
 > included as project files are **not** compiled.
 
-> **Warning:** `--cythonize` does **not guarantee** source code protection and should not be relied upon
-> for that purpose. Furthermore, without proper use of Cython-specific constructs (e.g. `cdef`, `cfunc`, `cdef class`),
-> the compiled binary still exposes all public interfaces. 
-> Refer to the [Cython Extension Types](https://cython.readthedocs.io/en/latest/src/userguide/extension_types.html)
-> for constructs that can help restrict visibility.
+> **Warning:** `--cythonize` **does not guarantee** protection against reverse
+> engineering and **should not be** used for that purpose. Furthermore, without proper use of Cython-specific
+> constructs (e.g., `cdef`, `cfunc`, `cdef class`), the
+> compiled binary
+> still exposes all public interfaces. Refer to
+> the [Cython Extension Types](https://cython.readthedocs.io/en/latest/src/userguide/extension_types.html) for
+> constructs
+> that can help restrict visibility of functions and class attributes when importing binary modules.
 
 ```
 pythonfmu info -f my.fmu
